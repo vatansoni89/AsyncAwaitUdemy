@@ -1,14 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -21,12 +17,25 @@ namespace Winforms
             InitializeComponent();
         }
 
-        private void btnStart_Click(object sender, EventArgs e)
+        private async void btnStart_Click(object sender, EventArgs e)
         {
+            loadingGIF.Visible = true;
+            Wait();
+            loadingGIF.Visible = false;
+            MessageBox.Show("From calling function");
         }
 
-        private void btnCancel_Click(object sender, EventArgs e)
+        private async Task Wait()
         {
+            MessageBox.Show("Before 15 sec await");
+            await Task.Delay(TimeSpan.FromSeconds(15));
+            MessageBox.Show("After 15 sec await");
         }
+
+        /* without await output:
+        Before 15 sec await
+        From calling function
+        After 15 sec await
+         */
     }
 }
