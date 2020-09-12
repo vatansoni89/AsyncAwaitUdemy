@@ -20,7 +20,7 @@ namespace Winforms
         private async void btnStart_Click(object sender, EventArgs e)
         {
             loadingGIF.Visible = true;
-            Wait();
+            await Wait();
             loadingGIF.Visible = false;
             MessageBox.Show("From calling function");
         }
@@ -36,6 +36,12 @@ namespace Winforms
         Before 15 sec await
         From calling function
         After 15 sec await
+         */
+
+        /* with await output:
+        Before 15 sec await
+        After 15 sec await
+        From calling function
          */
     }
 }
