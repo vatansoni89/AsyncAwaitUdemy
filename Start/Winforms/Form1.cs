@@ -35,6 +35,7 @@ namespace Winforms
             try
             {
                 //Loading gif don't appear quickly with 25000 req. 
+                //We do Task.Run to solve it.
                 var cards = await GetCards(25000);
 
                 await ProcessCards(cards);
