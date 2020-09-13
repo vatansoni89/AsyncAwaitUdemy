@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net.Http;
@@ -19,27 +21,43 @@ namespace Winforms
         public Form1()
         {
             InitializeComponent();
-            apiUrl = "https://localhost:44337/api/greetings";
-            HttpClient= new HttpClient();
+            apiUrl = "https://localhost:44337/api";
+            HttpClient = new HttpClient();
         }
 
         private async void btnStart_Click(object sender, EventArgs e)
         {
             loadingGIF.Visible = true;
-            await Wait();
-            var name = txtName.Text;
-            //MessageBox.Show("From calling function after 0 sec");
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+
             try
             {
-                 var greeting = await GetGreetings(name);
+                var cards = GetCards(5);
+                await ProcessCards(cards);
             }
             catch (HttpRequestException ex)
             {
                 MessageBox.Show(ex.Message);
             }
-           
-            //MessageBox.Show(greeting);
+
+            MessageBox.Show($"Operation took {sw.ElapsedMilliseconds/1000.0} seconds.");
             loadingGIF.Visible = false;
+        }
+
+        private async Task ProcessCards(List<string> cards)
+        {
+            var tasks = new List<Task<HttpResponseMessage>>();
+            foreach (var card in cards)
+            {
+                var json = JsonConvert.SerializeObject(card);
+                var content = new StringContent(json,Encoding.UTF8,"application/json");
+                var responseTask = HttpClient.PostAsync($"{apiUrl}/cards",content);
+                tasks.Add(responseTask);
+            }
+            
+            await Task.WhenAll(tasks);
         }
 
         private async Task Wait()
@@ -55,6 +73,16 @@ namespace Winforms
                 var greeting = await response.Content.ReadAsStringAsync();
                 return greeting;
             }
+        }
+
+        private List<string> GetCards(int amountOfCardsToGenerate)
+        {
+            var cards = new List<string>();
+            for (int i = 0; i < amountOfCardsToGenerate; i++)
+            {
+                cards.Add(i.ToString().PadLeft(16, '0'));
+            }
+            return cards;
         }
 
         /* without await output:
