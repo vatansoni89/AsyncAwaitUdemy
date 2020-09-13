@@ -34,7 +34,9 @@ namespace Winforms
 
             try
             {
-                var cards = GetCards(5);
+                //Loading gif don't appear quickly with 25000 req. 
+                var cards = await GetCards(25000);
+
                 await ProcessCards(cards);
             }
             catch (HttpRequestException ex)
@@ -42,21 +44,39 @@ namespace Winforms
                 MessageBox.Show(ex.Message);
             }
 
-            MessageBox.Show($"Operation took {sw.ElapsedMilliseconds/1000.0} seconds.");
+            MessageBox.Show($"Operation took {sw.ElapsedMilliseconds / 1000.0} seconds.");
             loadingGIF.Visible = false;
+        }
+
+        private async Task<List<string>> GetCards(int amountOfCardsToGenerate)
+        {
+            return await Task.Run(() =>
+            {
+                var cards = new List<string>();
+                for (int i = 0; i < amountOfCardsToGenerate; i++)
+                {
+                    cards.Add(i.ToString().PadLeft(16, '0'));
+                }
+                return cards;
+            });
+
         }
 
         private async Task ProcessCards(List<string> cards)
         {
             var tasks = new List<Task<HttpResponseMessage>>();
-            foreach (var card in cards)
+
+            await Task.Run(() =>
             {
-                var json = JsonConvert.SerializeObject(card);
-                var content = new StringContent(json,Encoding.UTF8,"application/json");
-                var responseTask = HttpClient.PostAsync($"{apiUrl}/cards",content);
-                tasks.Add(responseTask);
-            }
-            
+                foreach (var card in cards)
+                {
+                    var json = JsonConvert.SerializeObject(card);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    var responseTask = HttpClient.PostAsync($"{apiUrl}/cards", content);
+                    tasks.Add(responseTask);
+                }
+            });
+
             await Task.WhenAll(tasks);
         }
 
@@ -75,15 +95,7 @@ namespace Winforms
             }
         }
 
-        private List<string> GetCards(int amountOfCardsToGenerate)
-        {
-            var cards = new List<string>();
-            for (int i = 0; i < amountOfCardsToGenerate; i++)
-            {
-                cards.Add(i.ToString().PadLeft(16, '0'));
-            }
-            return cards;
-        }
+
 
         /* without await output:
         Before 15 sec await
