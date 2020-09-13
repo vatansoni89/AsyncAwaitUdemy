@@ -31,7 +31,7 @@ namespace Winforms
             //MessageBox.Show("From calling function after 0 sec");
             try
             {
-                 var greeting = GetGreetings(name);
+                 var greeting = await GetGreetings(name);
             }
             catch (HttpRequestException ex)
             {
