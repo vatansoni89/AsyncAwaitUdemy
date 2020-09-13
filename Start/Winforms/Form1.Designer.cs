@@ -31,6 +31,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.btnStart = new System.Windows.Forms.Button();
             this.loadingGIF = new System.Windows.Forms.PictureBox();
+            this.txtName = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.loadingGIF)).BeginInit();
             this.SuspendLayout();
             // 
@@ -55,17 +56,26 @@
             this.loadingGIF.TabStop = false;
             this.loadingGIF.Visible = false;
             // 
+            // txtName
+            // 
+            this.txtName.Location = new System.Drawing.Point(156, 126);
+            this.txtName.Name = "txtName";
+            this.txtName.Size = new System.Drawing.Size(100, 22);
+            this.txtName.TabIndex = 2;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.txtName);
             this.Controls.Add(this.loadingGIF);
             this.Controls.Add(this.btnStart);
             this.Name = "Form1";
             this.Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)(this.loadingGIF)).EndInit();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -73,6 +83,7 @@
 
         private System.Windows.Forms.Button btnStart;
         private System.Windows.Forms.PictureBox loadingGIF;
+        private System.Windows.Forms.TextBox txtName;
     }
 }
 
