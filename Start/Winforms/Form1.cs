@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -36,7 +37,7 @@ namespace Winforms
             {
                 //Loading gif don't appear quickly with 25000 req. 
                 //We do Task.Run to solve it.
-                var cards = await GetCards(25000);
+                var cards = await GetCards(1500);
 
                 await ProcessCards(cards);
             }
@@ -65,38 +66,43 @@ namespace Winforms
 
         private async Task ProcessCards(List<string> cards)
         {
+            using var semaphore = new SemaphoreSlim(100); // To ensure how many Task can run at same time. 
+                                                        //Throttle the amount of http req. in our case.
             var tasks = new List<Task<HttpResponseMessage>>();
 
-            await Task.Run(() =>
+            tasks = cards.Select(async card =>
             {
-                foreach (var card in cards)
+                var json = JsonConvert.SerializeObject(card);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                await semaphore.WaitAsync();
+                try
                 {
-                    var json = JsonConvert.SerializeObject(card);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    var responseTask = HttpClient.PostAsync($"{apiUrl}/cards", content);
-                    tasks.Add(responseTask);
+                    return await HttpClient.PostAsync($"{apiUrl}/cards", content);
                 }
-            });
+                finally
+                {
+                    semaphore.Release();
+                }
+            }).ToList();
 
-            await Task.WhenAll(tasks);
-        }
+            var responses = await Task.WhenAll(tasks);
+            var rejectedcards = new List<string>();
 
-        private async Task Wait()
-        {
-            await Task.Delay(TimeSpan.FromSeconds(0));
-        }
-
-        private async Task<string> GetGreetings(string name)
-        {
-            using (var response = await HttpClient.GetAsync($"{apiUrl}1/{name}"))
+            foreach (var response in responses)
             {
-                response.EnsureSuccessStatusCode();
-                var greeting = await response.Content.ReadAsStringAsync();
-                return greeting;
+                var content = await response.Content.ReadAsStringAsync();
+                var card = JsonConvert.DeserializeObject<CardResponse>(content);
+                if (!card.Approved)
+                {
+                    rejectedcards.Add(card.Card);
+                }
+            }
+
+            foreach (var card in rejectedcards)
+            {
+                Console.WriteLine($"Card {card} was rejected.");
             }
         }
-
-
 
         /* without await output:
         Before 15 sec await
