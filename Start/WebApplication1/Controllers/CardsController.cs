@@ -18,7 +18,7 @@ namespace WebApplication1.Controllers
         { 
             var randomValue = RandomGen.NextDouble();
             var approved = randomValue > 0.1;
-            await Task.Delay(3000);
+            await Task.Delay(0);
             Console.WriteLine($"Card {card} processed");
             return Ok(new { Card=card, Approved=approved});
         }

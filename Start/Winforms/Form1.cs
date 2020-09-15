@@ -44,7 +44,7 @@ namespace Winforms
             {
                 //Loading gif don't appear quickly with 25000 req. 
                 //We do Task.Run to solve it.
-                var cards = await GetCards(50);
+                var cards = await GetCards(5000);
 
                 await ProcessCards(cards, progressReport);
             }
@@ -75,11 +75,11 @@ namespace Winforms
 
         private async Task ProcessCards(List<string> cards, IProgress<int> progress = null)
         {
-            using var semaphore = new SemaphoreSlim(10); // To ensure how many Task can run at same time. 
-                                                        //Throttle the amount of http req. in our case.
+            using var semaphore = new SemaphoreSlim(500); // To ensure how many Task can run at same time. 
+                                                         //Throttle the amount of http req. in our case.
             var tasks = new List<Task<HttpResponseMessage>>();
 
-            var taskResolved = 0;
+            //var taskResolved = 0;
 
             tasks = cards.Select(async card =>
             {
@@ -89,13 +89,13 @@ namespace Winforms
                 try
                 {
                     var internalTask = await HttpClient.PostAsync($"{apiUrl}/cards", content);
-                    if (progress != null)
-                    {
-                        taskResolved++;
-                        var percentage = (double)taskResolved *100 / cards.Count;
-                        var percentageInt = (int)Math.Round(percentage, 0);
-                        progress.Report(percentageInt);
-                    }
+                    //if (progress != null)
+                    //{
+                    //    taskResolved++;
+                    //    var percentage = (double)taskResolved *100 / cards.Count;
+                    //    var percentageInt = (int)Math.Round(percentage, 0);
+                    //    progress.Report(percentageInt);
+                    //}
                     return internalTask;
                 }
                 finally
@@ -104,8 +104,23 @@ namespace Winforms
                 }
             }).ToList();
 
-            var responses = await Task.WhenAll(tasks);
+            //Here all task wrapped in a single task so when it completes means all completed. (I think)
+            var responsesTasks = Task.WhenAll(tasks);
+
+            if (progress != null)
+            {
+                //!= always be true untill all task are not done as Task.Delay(1000) done every 1 sec and we check the progress.
+                while (await Task.WhenAny(responsesTasks, Task.Delay(1000)) != responsesTasks)
+                {
+                    var completedTask = tasks.Where(x => x.IsCompleted == true).Count();
+                    var percentage = (double)completedTask * 100 / tasks.Count;
+                    var percentageInt = (int)Math.Round(percentage, 0);
+                    progress.Report(percentageInt);
+                }
+            }
+
             var rejectedcards = new List<string>();
+            var responses = await responsesTasks;
 
             foreach (var response in responses)
             {
