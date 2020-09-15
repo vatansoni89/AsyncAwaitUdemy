@@ -25,10 +25,17 @@ namespace Winforms
             apiUrl = "https://localhost:44337/api";
             HttpClient = new HttpClient();
         }
+        private void ReportCardProcessingProgress(int percentage)
+        {
+            pgCards.Value = percentage;
+        }
 
         private async void btnStart_Click(object sender, EventArgs e)
         {
+            var progressReport = new Progress<int>(ReportCardProcessingProgress);
+
             loadingGIF.Visible = true;
+            pgCards.Visible = true;
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
@@ -37,9 +44,9 @@ namespace Winforms
             {
                 //Loading gif don't appear quickly with 25000 req. 
                 //We do Task.Run to solve it.
-                var cards = await GetCards(1500);
+                var cards = await GetCards(50);
 
-                await ProcessCards(cards);
+                await ProcessCards(cards, progressReport);
             }
             catch (HttpRequestException ex)
             {
@@ -48,6 +55,9 @@ namespace Winforms
 
             MessageBox.Show($"Operation took {sw.ElapsedMilliseconds / 1000.0} seconds.");
             loadingGIF.Visible = false;
+
+            pgCards.Visible = true;
+            pgCards.Value = 0;
         }
 
         private async Task<List<string>> GetCards(int amountOfCardsToGenerate)
@@ -61,14 +71,15 @@ namespace Winforms
                 }
                 return cards;
             });
-
         }
 
-        private async Task ProcessCards(List<string> cards)
+        private async Task ProcessCards(List<string> cards, IProgress<int> progress = null)
         {
-            using var semaphore = new SemaphoreSlim(100); // To ensure how many Task can run at same time. 
+            using var semaphore = new SemaphoreSlim(10); // To ensure how many Task can run at same time. 
                                                         //Throttle the amount of http req. in our case.
             var tasks = new List<Task<HttpResponseMessage>>();
+
+            var taskResolved = 0;
 
             tasks = cards.Select(async card =>
             {
@@ -77,7 +88,15 @@ namespace Winforms
                 await semaphore.WaitAsync();
                 try
                 {
-                    return await HttpClient.PostAsync($"{apiUrl}/cards", content);
+                    var internalTask = await HttpClient.PostAsync($"{apiUrl}/cards", content);
+                    if (progress != null)
+                    {
+                        taskResolved++;
+                        var percentage = (double)taskResolved *100 / cards.Count;
+                        var percentageInt = (int)Math.Round(percentage, 0);
+                        progress.Report(percentageInt);
+                    }
+                    return internalTask;
                 }
                 finally
                 {
